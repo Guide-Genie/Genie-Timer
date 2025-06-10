@@ -282,19 +282,21 @@ function playAlarm() {
     audio.volume = alarmVolume;
     audio.play();
   } else {
-    // ✅ 기존 비프음
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const gain = ctx.createGain();
-    gain.gain.value = alarmVolume;
-    const now = ctx.currentTime;
-    [0, 0.2, 0.4, 1.0, 1.2, 1.4, 2.0, 2.2, 2.4].forEach(t => {
-      const osc = ctx.createOscillator();
-      osc.type = "square";
-      osc.frequency.setValueAtTime(440, now + t);
-      osc.connect(gain).connect(ctx.destination);
-      osc.start(now + t);
-      osc.stop(now + t + 0.1);
-    });
+// ✅ 기존 비프음
+const ctx = new (window.AudioContext || window.webkitAudioContext)();
+const gain = ctx.createGain();
+// 비프음만 약간 더 줄이기 (예: 절반으로)
+gain.gain.value = alarmVolume * 0.5; // 여기서 0.5는 자유롭게 조절 가능!
+const now = ctx.currentTime;
+[0, 0.2, 0.4, 1.0, 1.2, 1.4, 2.0, 2.2, 2.4].forEach(t => {
+  const osc = ctx.createOscillator();
+  osc.type = "square";
+  osc.frequency.setValueAtTime(440, now + t);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(now + t);
+  osc.stop(now + t + 0.1);
+});
+
   }
 }
 
