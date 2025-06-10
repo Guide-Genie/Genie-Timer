@@ -332,6 +332,26 @@ function loadDataFromLocal() {
     appendRow(idx);
   });
 }
+// 페이지 로드 시 저장된 모드 불러오기
+window.onload = () => {
+  loadDataFromLocal();
+  const savedMode = localStorage.getItem("themeMode");
+  if (savedMode) {
+    setMode(savedMode);
+  }
+};
+
+// 모드 설정 함수 수정
+function setMode(mode) {
+  document.body.classList.remove("dark-mode", "legend-mode");
+  if (mode === "dark") document.body.classList.add("dark-mode");
+  if (mode === "legend") document.body.classList.add("legend-mode");
+  
+  // 저장
+  localStorage.setItem("themeMode", mode);
+}
+
+  
 </script>
 
 </body>
