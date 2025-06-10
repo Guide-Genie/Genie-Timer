@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>백작 유리드 재입장 타이머 _ 곽진희 제작 및 배포</title>
+<style>
+  body {
+    font-family: 'Helvetica','Arial',sans-serif;
+    background: #f5f5f5;
+    margin: 20px;
+    color: #333;
+    transition: background 0.3s, color 0.3s;
+  }
+  h2 { color: #222; }
+  #inputArea, #volumeControl { margin-bottom: 16px; }
+  label { margin-right: 10px; }
+  input[type="text"] {
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+  }
+  button {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 4px;
+    transition: background 0.3s;
+  }
+  button:hover { background: #0056b3; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    background: white;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    transition: background 0.3s, color 0.3s;
+  }
+  th, td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #ddd;
+    text-align: center;
+  }
+  th { background: #f0f0f0; font-weight: 600; cursor: pointer; }
+  tr:hover { background: #f9f9f9; }
+  .가능 { color: #28a745; font-weight: bold; }
+  .불가능 { color: #dc3545; font-weight: bold; }
+  .mute-checkbox { transform: scale(1.2); cursor: pointer; }
+  .highlight {
+    border: 2px solid #28a745;
+    border-radius: 4px;
+    background: #e6f9eb;
+    color: #000;
+    transition: all 0.3s;
+  }
+  #volumeControl { text-align: right; }
+
+  body.dark-mode { background: #121212; color: #e0e0e0; }
+  body.dark-mode h2 { color: #fff; }
+  body.dark-mode table { background: #1e1e1e; color: #ccc; }
+  body.dark-mode th { background: #333; }
+  body.dark-mode tr:hover { background: #2a2a2a; }
+  body.dark-mode button { background: #3399ff; }
+  body.dark-mode button:hover { background: #1a73e8; }
+  body.dark-mode .highlight { background: #b5f5b5; }
+
+  body.legend-mode { background: #2E2E2E; color: #F0E6D2; }
+  body.legend-mode h2 { color: #FFD700; }
+  body.legend-mode table { background: #3A2E2A; color: #E6D6B3; }
+  body.legend-mode th { background: #4B3621; }
+  body.legend-mode tr:hover { background: #4B3B34; }
+  body.legend-mode button { background: #8B4513; color: #fff; }
+  body.legend-mode button:hover { background: #A0522D; }
+  body.legend-mode .highlight { background: #D2691E; border: 2px solid #FFD700; color: #fff; }
+
+  .mode-toggle-buttons {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    gap: 10px;
+  }
+
+  .tmi-box {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #555;
+    padding: 8px;
+    border-radius: 4px;
+    background: #f0f0f0;
+  }
+  body.dark-mode .tmi-box { background: #1e1e1e; color: #ccc; }
+  body.legend-mode .tmi-box { background: #3A2E2A; color: #E6D6B3; }
+  .tmi-box .tmi-highlight { color: red; font-weight: bold; }
+</style>
+</head>
+<body>
+<h2>백작 유리드 재입장 타이머</h2>
+<p style="text-align:right;font-size:12px;margin-top:-10px;margin-bottom:10px;">
+  Made by 곽진희
+</p>
+
+<div id="volumeControl">
+  🔊 알람 볼륨:
+  <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.05" onchange="updateVolume()">
+  <button onclick="playAlarm()">테스트</button>
+</div>
+
+<div id="inputArea">
+  <label>캐릭터명:
+    <input type="text" id="newCharacterName">
+  </label>
+  <label>직업명:
+    <input type="text" id="newJobName" onkeypress="handleEnter(event)">
+  </label>
+  <button onclick="addCharacter()">캐릭터 추가</button>
+</div>
+
+<div class="tmi-box">
+  📣 <strong>백작 유리드 관련 TMI</strong><br>
+  Ⅰ. 올바른 상식<br>
+  엘리자벳과 조안의 리베라티움은 몬스터가
+  <span class="tmi-highlight">'기본공격'</span> 할 때 일정확률로 발동합니다.<br><br>
+  Ⅱ. 잘못된 상식<br>
+  유저가 이모탈, 리플렉션, 완전방어, 속강, 기본공격을 사용한다고 리베라티움을 쓰는것이 아니다.<br>
+  다만 기본공격의 경우 나르콜룸 세팅이 풀려서 몬스터의 기본공격에 의해 발동되는 것이다.
+</div>
+
+<table id="dataTable">
+  <thead>
+    <tr>
+      <th onclick="sortTable(1)">캐릭터명 ▲▼</th>
+      <th onclick="sortTable(2)">직업명 ▲▼</th>
+      <th>입장 시간</th>
+      <th>재입장 시간</th>
+      <th onclick="sortRemainingTime()">재입장 여부 / 남은 시간 ▲▼</th>
+      <th>백작 유리드</th>
+      <th>알림 음소거</th>
+      <th>삭제</th>
+    </tr>
+  </thead>
+  <tbody id="dataBody"></tbody>
+</table>
+
+<div class="mode-toggle-buttons">
+  <button onclick="setMode('light')">☀️</button>
+  <button onclick="setMode('dark')">🌙</button>
+  <button onclick="setMode('legend')">⚔️</button>
+</div>
+
+<script>
+let rowCount = 0;
+let characterData = {};
+let alarmVolume = 0.05;
+let sortOrder = [true, true, true];
+
+window.onload = loadDataFromLocal;
+
+function updateVolume() {
+  alarmVolume = parseFloat(document.getElementById("volumeSlider").value);
+}
+
+function handleEnter(e) {
+  if (e.key === "Enter") addCharacter();
+}
+
+function setMode(mode) {
+  document.body.classList.remove("dark-mode", "legend-mode");
+  if (mode === "dark") document.body.classList.add("dark-mode");
+  if (mode === "legend") document.body.classList.add("legend-mode");
+}
+
+function addCharacter() {
+  const name = document.getElementById("newCharacterName").value.trim();
+  const job = document.getElementById("newJobName").value.trim();
+  if (!name || !job) {
+    alert("캐릭터명과 직업을 입력하세요!");
+    return;
+  }
+  rowCount++;
+  characterData[rowCount] = {
+    name,
+    job,
+    entry: null,
+    reentry: null,
+    muted: false,
+    remainingTime: null,
+    notified: false
+  };
+  appendRow(rowCount);
+  saveDataToLocal();
+  document.getElementById("newCharacterName").value = "";
+  document.getElementById("newJobName").value = "";
+}
+
+function appendRow(idx) {
+  const row = document.createElement("tr");
+  row.id = `row-${idx}`;
+  row.innerHTML = `
+    <td>${characterData[idx].name}</td>
+    <td>${characterData[idx].job}</td>
+    <td id="entryTime-${idx}"></td>
+    <td id="reentryTime-${idx}"></td>
+    <td id="status-${idx}"></td>
+    <td><button data-row="${idx}" onclick="handleEntryButtonClick(event)">입장</button></td>
+    <td><input type="checkbox" class="mute-checkbox" data-row="${idx}" onchange="toggleMute(${idx},this.checked)" ${characterData[idx].muted ? "checked" : ""}></td>
+    <td><button style="background-color:#dc3545" onclick="deleteRow(${idx},this)">삭제</button></td>
+  `;
+  document.getElementById("dataBody").appendChild(row);
+
+  if (characterData[idx].entry) {
+    document.getElementById(`entryTime-${idx}`).textContent =
+      new Date(characterData[idx].entry).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+  }
+  if (characterData[idx].reentry) {
+    document.getElementById(`reentryTime-${idx}`).textContent =
+      new Date(characterData[idx].reentry).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+  }
+}
+function toggleMute(idx, value) {
+  characterData[idx].muted = value;
+  saveDataToLocal();
+}
+
+function handleEntryButtonClick(e) {
+  const idx = e.target.dataset.row;
+  const now = new Date();
+  characterData[idx].entry = now;
+  characterData[idx].reentry = new Date(now.getTime() + 30 * 60000);
+  characterData[idx].notified = false;
+  updateStatus(idx);
+  saveDataToLocal();
+
+  document.getElementById(`entryTime-${idx}`).textContent =
+    now.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+  document.getElementById(`reentryTime-${idx}`).textContent =
+    characterData[idx].reentry.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function updateStatus(idx) {
+  const data = characterData[idx];
+  if (!data.reentry) return;
+  const diff = data.reentry - new Date();
+  data.remainingTime = diff;
+  const statusCell = document.getElementById(`status-${idx}`);
+  const nameCell = document.querySelector(`#row-${idx} td:first-child`);
+  if (diff <= 0) {
+    statusCell.textContent = "가능";
+    nameCell.classList.add("highlight");
+    if (!data.muted && !data.notified) {
+      playAlarm();
+      data.notified = true;
+    }
+  } else {
+    nameCell.classList.remove("highlight");
+    const m = Math.floor(diff / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    statusCell.innerHTML = `불가능<br><small style="color:#888">남은 시간 ${m}분 ${s}초</small>`;
+    data.notified = false;
+  }
+  statusCell.className = diff <= 0 ? "가능" : "불가능";
+}
+
+setInterval(() => {
+  for (let i = 1; i <= rowCount; i++) updateStatus(i);
+}, 1000);
+
+function playAlarm() {
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const gain = ctx.createGain();
+  gain.gain.value = alarmVolume;
+  const now = ctx.currentTime;
+  [0, 0.2, 0.4, 1.0, 1.2, 1.4, 2.0, 2.2, 2.4].forEach(t => {
+    const osc = ctx.createOscillator();
+    osc.type = "square";
+    osc.frequency.setValueAtTime(440, now + t);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(now + t);
+    osc.stop(now + t + 0.1);
+  });
+}
+
+function sortTable(col) {
+  const tbody = document.getElementById("dataBody");
+  const rows = Array.from(tbody.querySelectorAll("tr"));
+  const asc = sortOrder[col - 1];
+  rows.sort((a, b) => {
+    const ta = a.children[col - 1].textContent;
+    const tb = b.children[col - 1].textContent;
+    return asc ? ta.localeCompare(tb) : tb.localeCompare(ta);
+  });
+  sortOrder[col - 1] = !asc;
+  rows.forEach(r => tbody.appendChild(r));
+}
+
+function sortRemainingTime() {
+  const tbody = document.getElementById("dataBody");
+  const rows = Array.from(tbody.querySelectorAll("tr"));
+  const asc = sortOrder[2];
+  rows.sort((a, b) => {
+    const ra = characterData[parseInt(a.id.split("-")[1])].remainingTime || 0;
+    const rb = characterData[parseInt(b.id.split("-")[1])].remainingTime || 0;
+    return asc ? ra - rb : rb - ra;
+  });
+  sortOrder[2] = !asc;
+  rows.forEach(r => tbody.appendChild(r));
+}
+
+function deleteRow(idx, btn) {
+  delete characterData[idx];
+  btn.closest("tr").remove();
+  saveDataToLocal();
+}
+
+function saveDataToLocal() {
+  localStorage.setItem("characterData", JSON.stringify(characterData));
+}
+
+function loadDataFromLocal() {
+  const saved = localStorage.getItem("characterData");
+  if (!saved) return;
+  const parsed = JSON.parse(saved);
+  Object.keys(parsed).forEach(key => {
+    const idx = parseInt(key);
+    characterData[idx] = parsed[key];
+    characterData[idx].entry = characterData[idx].entry ? new Date(characterData[idx].entry) : null;
+    characterData[idx].reentry = characterData[idx].reentry ? new Date(characterData[idx].reentry) : null;
+    rowCount = Math.max(rowCount, idx);
+    appendRow(idx);
+  });
+}
+</script>
+
+</body>
+</html>
