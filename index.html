@@ -107,6 +107,11 @@
   🔊 알람 볼륨:
   <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.05" onchange="updateVolume()">
   <button onclick="playAlarm()">테스트</button>
+
+  <label style="margin-left:10px;">
+  <input type="checkbox" id="useVoiceFile"> 음성 파일 사용
+</label>
+
 </div>
 
 <div id="inputArea">
@@ -269,19 +274,30 @@ setInterval(() => {
 }, 1000);
 
 function playAlarm() {
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
-  const gain = ctx.createGain();
-  gain.gain.value = alarmVolume;
-  const now = ctx.currentTime;
-  [0, 0.2, 0.4, 1.0, 1.2, 1.4, 2.0, 2.2, 2.4].forEach(t => {
-    const osc = ctx.createOscillator();
-    osc.type = "square";
-    osc.frequency.setValueAtTime(440, now + t);
-    osc.connect(gain).connect(ctx.destination);
-    osc.start(now + t);
-    osc.stop(now + t + 0.1);
-  });
+  const useVoiceFile = document.getElementById("useVoiceFile").checked;
+
+  if (useVoiceFile) {
+    // ✅ mp3 음성파일 재생
+    const audio = new Audio("voice_alarm.mp3"); // 음성파일 이름!
+    audio.volume = alarmVolume;
+    audio.play();
+  } else {
+    // ✅ 기존 비프음
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const gain = ctx.createGain();
+    gain.gain.value = alarmVolume;
+    const now = ctx.currentTime;
+    [0, 0.2, 0.4, 1.0, 1.2, 1.4, 2.0, 2.2, 2.4].forEach(t => {
+      const osc = ctx.createOscillator();
+      osc.type = "square";
+      osc.frequency.setValueAtTime(440, now + t);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now + t);
+      osc.stop(now + t + 0.1);
+    });
+  }
 }
+
 
 function sortTable(col) {
   const tbody = document.getElementById("dataBody");
